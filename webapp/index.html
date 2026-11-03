@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Траты</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg2: var(--tg-theme-secondary-bg-color, #f1f2f6);
+    --section: var(--tg-theme-section-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #111111);
+    --hint: var(--tg-theme-hint-color, #8a8f98);
+    --accent: var(--tg-theme-button-color, #2f7cf6);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --link: var(--tg-theme-link-color, #2f7cf6);
+    --danger: var(--tg-theme-destructive-text-color, #e5484d);
+    --sep: var(--tg-theme-section-separator-color, rgba(127,127,127,.18));
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg2); color: var(--text);
+    font: 15px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", sans-serif; }
+  body { padding: 0 12px calc(24px + env(safe-area-inset-bottom)); }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+  .hint { color: var(--hint); }
+
+  /* tabs */
+  .tabs { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; padding: 10px 0;
+    background: var(--bg2); }
+  .tabs button { flex: 1; padding: 9px 0; border-radius: 10px; font-weight: 600; color: var(--hint); }
+  .tabs button.on { background: var(--section); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .card { background: var(--section); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .grow { flex: 1; min-width: 0; }
+  .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* month header */
+  .month-head { display: flex; align-items: center; justify-content: space-between; }
+  .month-head h2 { margin: 0; font-size: 17px; }
+  .arrow { width: 36px; height: 36px; border-radius: 50%; font-size: 20px; color: var(--link); }
+  .arrow:active { background: var(--bg2); }
+  .total { text-align: center; margin: 10px 0 2px; font-size: 30px; font-weight: 700; letter-spacing: -.5px; }
+  .total small { font-size: 15px; font-weight: 500; color: var(--hint); }
+
+  .months-strip { display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 12px 14px 0;
+    scrollbar-width: none; }
+  .months-strip::-webkit-scrollbar { display: none; }
+  .mchip { flex: none; padding: 6px 10px; border-radius: 10px; background: var(--bg2); text-align: left; }
+  .mchip b { display: block; font-size: 13px; }
+  .mchip span { font-size: 12px; color: var(--hint); }
+  .mchip.on { background: var(--accent); color: var(--accent-text); }
+  .mchip.on span { color: inherit; opacity: .8; }
+
+  /* category breakdown */
+  .cat-row { padding: 8px 0; border-top: 1px solid var(--sep); width: 100%; text-align: left; display: block; }
+  .cat-row:first-child { border-top: 0; }
+  .cat-row .bar { height: 4px; border-radius: 2px; background: var(--bg2); margin-top: 6px; overflow: hidden; }
+  .cat-row .bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+  .cat-row.dim { opacity: .4; }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--hint);
+    margin: 16px 4px 6px; display: flex; justify-content: space-between; }
+  .section-title button { color: var(--link); text-transform: none; letter-spacing: 0; font-size: 13px; }
+
+  /* payment list */
+  .pay { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--sep);
+    width: 100%; text-align: left; }
+  .pay:first-child { border-top: 0; }
+  .pay .time { color: var(--hint); font-size: 13px; width: 40px; flex: none; }
+  .pay .amt { font-weight: 600; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 6px; background: var(--bg2);
+    color: var(--hint); margin-top: 2px; }
+  .empty { text-align: center; color: var(--hint); padding: 28px 0; }
+
+  /* upload */
+  .drop { display: block; border: 2px dashed var(--sep); border-radius: var(--radius); background: var(--section);
+    padding: 26px 14px; text-align: center; cursor: pointer; margin-bottom: 10px; }
+  .drop b { display: block; color: var(--link); font-size: 16px; margin-bottom: 4px; }
+  .drop input { display: none; }
+  .up-amount { font-size: 22px; font-weight: 700; }
+  .status { font-size: 13px; }
+  .status.err { color: var(--danger); }
+  .status.ok { color: #2ea44f; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip { padding: 7px 12px; border-radius: 18px; background: var(--bg2); font-size: 14px; }
+  .chip.on { background: var(--accent); color: var(--accent-text); }
+  .chip.add { color: var(--link); }
+  .chip.sugg:not(.on) { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .newcat { display: flex; gap: 6px; margin-top: 8px; }
+  .newcat input { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sep);
+    background: var(--bg); color: var(--text); font: inherit; outline: none; }
+  .newcat button, .btn { padding: 8px 14px; border-radius: 10px; background: var(--accent); color: var(--accent-text);
+    font-weight: 600; }
+  .btn.ghost { background: var(--bg2); color: var(--text); }
+  .btn.danger { background: none; color: var(--danger); }
+  .x { color: var(--hint); font-size: 18px; width: 28px; height: 28px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--sep); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: -3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .savebar { display: none; margin-top: 4px; }
+  .savebar .btn { width: 100%; padding: 13px; font-size: 16px; }
+
+  /* sheet */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: none; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--bg);
+    border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    max-height: 85vh; overflow-y: auto; transform: translateY(100%); transition: transform .22s ease; }
+  .sheet.open { transform: none; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--sep);
+    font-size: 14px; }
+  .kv span:last-child { text-align: right; word-break: break-all; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(0,0,0,.8);
+    color: #fff; padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 30; display: none; }
+</style>
+</head>
+<body>
+<nav class="tabs">
+  <button data-tab="list" class="on">Траты</button>
+  <button data-tab="upload">Загрузить</button>
+</nav>
+<main id="view"></main>
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = (x) => Number(x).toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MONTHS_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const monthTitle = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
+const shiftMonth = (m, d) => {
+  const dt = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + d, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+};
+const fmtDay = (iso) => {
+  const d = new Date(iso.slice(0, 10) + 'T00:00');
+  return d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'long', weekday: 'short'});
+};
+const fmtDateTime = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)} ${iso.slice(11, 16)}`;
+
+function toast(text) {
+  const t = $('#toast');
+  t.textContent = text; t.style.display = 'block';
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.style.display = 'none', 2200);
+}
+const haptic = (type) => tg?.HapticFeedback?.notificationOccurred(type);
+
+async function api(path, {method = 'GET', json, body} = {}) {
+  // второй заголовок убирает страницу-предупреждение бесплатного ngrok для запросов к API
+  const headers = {Authorization: 'tma ' + (tg?.initData || ''), 'ngrok-skip-browser-warning': '1'};
+  if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
+  const res = await fetch(path, {method, headers, body});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || `Ошибка ${res.status}`), {status: res.status});
+  return data;
+}
+
+const state = {
+  tab: 'list',
+  categories: [],
+  month: shiftMonth(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`, 0),
+  monthData: null,
+  months: [],
+  filter: null,         // category_id
+  uploads: [],          // {key, name, status, slip, error, dup, categoryId, suggested, adding}
+  openPaymentId: null,
+};
+
+// ---------------- Траты ----------------
+
+async function loadMonth() {
+  const [monthData, months] = await Promise.all([
+    api('/api/month?m=' + state.month), api('/api/months'),
+  ]);
+  state.monthData = monthData;
+  state.months = months;
+  if (state.filter && !monthData.totals.some((t) => t.category_id === state.filter)) state.filter = null;
+  if (state.tab === 'list') render();
+}
+
+function renderList() {
+  const d = state.monthData;
+  if (!d) return '<div class="empty"><span class="spinner"></span></div>';
+  const sum = d.totals.reduce((a, t) => a + t.total, 0);
+  const max = Math.max(...d.totals.map((t) => t.total), 1);
+
+  // полоса месяцев: последние с данными + текущий выбранный
+  const strip = [...new Set([state.month, ...state.months.map((m) => m.month)])].sort().reverse();
+  const totalsByMonth = Object.fromEntries(state.months.map((m) => [m.month, m.total]));
+
+  let html = `<section class="card">
+    <div class="month-head">
+      <button class="arrow" data-action="month" data-d="-1">‹</button>
+      <h2>${monthTitle(state.month)}</h2>
+      <button class="arrow" data-action="month" data-d="1">›</button>
+    </div>
+    <div class="total num">${money(sum)} <small>THB</small></div>
+    <div class="hint" style="text-align:center;font-size:13px">${d.payments.length} платеж${plural(d.payments.length)}</div>
+    ${strip.length > 1 ? `<div class="months-strip">${strip.map((m) => `
+      <button class="mchip ${m === state.month ? 'on' : ''}" data-action="goto" data-m="${m}">
+        <b>${MONTHS_SHORT[+m.slice(5, 7) - 1]} ${m.slice(2, 4)}</b>
+        <span class="num">${totalsByMonth[m] ? money(totalsByMonth[m]) : '—'}</span>
+      </button>`).join('')}</div>` : ''}
+  </section>`;
+
+  if (!d.payments.length) {
+    return html + `<section class="card empty">В этом месяце платежей нет.<br><br>
+      <button class="btn" data-tab="upload">Загрузить платёжки</button></section>`;
+  }
+
+  html += `<div class="section-title"><span>По категориям</span>
+    ${state.filter ? '<button data-action="filter" data-id="">Сбросить фильтр</button>' : ''}</div>
+    <section class="card" style="padding-top:6px;padding-bottom:6px">${d.totals.map((t) => `
+      <button class="cat-row ${state.filter && state.filter !== t.category_id ? 'dim' : ''}"
+              data-action="filter" data-id="${t.category_id}">
+        <div class="row"><span class="grow ellipsis">${esc(t.category)} <span class="hint">· ${t.cnt}</span></span>
+          <b class="num">${money(t.total)}</b></div>
+        <div class="bar"><i style="width:${(t.total / max * 100).toFixed(1)}%"></i></div>
+      </button>`).join('')}
+    </section>`;
+
+  const pays = d.payments.filter((p) => !state.filter || p.category_id === state.filter).slice().reverse();
+  const byDay = new Map();
+  for (const p of pays) {
+    const day = p.paid_at.slice(0, 10);
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day).push(p);
+  }
+  for (const [day, items] of byDay) {
+    const daySum = items.reduce((a, p) => a + p.amount, 0);
+    html += `<div class="section-title"><span>${fmtDay(day)}</span><span class="num">${money(daySum)}</span></div>
+      <section class="card" style="padding-top:4px;padding-bottom:4px">${items.map((p) => `
+        <button class="pay" data-action="open" data-id="${p.id}">
+          <span class="time num">${p.paid_at.slice(11, 16)}</span>
+          <span class="grow">
+            <span class="ellipsis" style="display:block">${esc(p.recipient_name || p.recipient_account || '—')}</span>
+            <span class="tag">${esc(p.category)}</span>
+          </span>
+          <span class="amt num">${money(p.amount)}</span>
+        </button>`).join('')}
+      </section>`;
+  }
+  return html;
+}
+
+function plural(n) {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return '';
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'а';
+  return 'ей';
+}
+
+// ---------------- Детали платежа ----------------
+
+function openPayment(id) {
+  const p = state.monthData.payments.find((x) => x.id === id);
+  if (!p) return;
+  state.openPaymentId = id;
+  $('#sheet').innerHTML = `
+    <div class="row" style="margin-bottom:6px">
+      <div class="grow"><div class="up-amount num">${money(p.amount)} THB</div>
+        <div class="hint">${fmtDateTime(p.paid_at)} · #${p.id}</div></div>
+      <button class="x" data-action="close">✕</button>
+    </div>
+    <div class="kv"><span class="hint">Получатель</span><span>${esc(p.recipient_name)}</span></div>
+    <div class="kv"><span class="hint">Счёт</span><span>${esc(p.recipient_account)} · ${esc(p.recipient_bank)}</span></div>
+    ${p.fee ? `<div class="kv"><span class="hint">Комиссия</span><span>${money(p.fee)}</span></div>` : ''}
+    ${p.bank_ref ? `<div class="kv"><span class="hint">Bank ref</span><span>${esc(p.bank_ref)}</span></div>` : ''}
+    ${p.tx_ref ? `<div class="kv"><span class="hint">Transaction ref</span><span class="num">${esc(p.tx_ref)}</span></div>` : ''}
+    <div class="section-title" style="margin-left:0"><span>Категория</span></div>
+    <div class="chips" style="margin-top:0">${state.categories.map((c) => `
+      <button class="chip ${c.id === p.category_id ? 'on' : ''}" data-action="recat" data-id="${c.id}">${esc(c.name)}</button>`).join('')}
+    </div>
+    <div style="margin-top:22px;text-align:center"><button class="btn danger" data-action="delete">Удалить платёж</button></div>`;
+  $('#overlay').style.display = 'block';
+  requestAnimationFrame(() => $('#sheet').classList.add('open'));
+  tg?.BackButton.show();
+}
+
+function closeSheet() {
+  state.openPaymentId = null;
+  $('#sheet').classList.remove('open');
+  $('#overlay').style.display = 'none';
+  tg?.BackButton.hide();
+}
+
+async function recat(categoryId) {
+  const id = state.openPaymentId;
+  try {
+    await api(`/api/payments/${id}`, {method: 'PATCH', json: {category_id: categoryId}});
+    haptic('success');
+    closeSheet();
+    await loadMonth();
+  } catch (e) { toast(e.message); }
+}
+
+function confirmDialog(text) {
+  return new Promise((resolve) => tg?.showConfirm ? tg.showConfirm(text, resolve) : resolve(confirm(text)));
+}
+
+async function deletePayment() {
+  const id = state.openPaymentId;
+  if (!(await confirmDialog('Удалить этот платёж?'))) return;
+  try {
+    await api(`/api/payments/${id}`, {method: 'DELETE'});
+    haptic('success');
+    closeSheet();
+    await loadMonth();
+  } catch (e) { toast(e.message); }
+}
+
+// ---------------- Загрузка ----------------
+
+let parseQueue = Promise.resolve();
+let uploadSeq = 0;
+
+function addFiles(files) {
+  for (const file of files) {
+    const u = {key: ++uploadSeq, name: file.name, status: 'parsing', categoryId: null};
+    state.uploads.unshift(u);
+    // по одной: распознавание тяжёлое, сервер всё равно обрабатывает их последовательно
+    parseQueue = parseQueue.then(() => parseOne(u, file));
+  }
+  render();
+}
+
+async function parseOne(u, file) {
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const r = await api('/api/parse', {method: 'POST', body: form});
+    u.slip = r.slip;
+    if (r.duplicate) { u.status = 'dup'; u.dup = r.duplicate; }
+    else {
+      u.status = 'ready';
+      u.suggested = r.suggested_category_id;
+      u.categoryId = r.suggested_category_id;
+      // одинаковые платёжки внутри одной пачки
+      if (u.slip.tx_ref && state.uploads.some((o) => o !== u && o.slip?.tx_ref === u.slip.tx_ref && o.status !== 'error')) {
+        u.status = 'dup'; u.dup = null;
+      }
+    }
+  } catch (e) {
+    u.status = 'error'; u.error = e.message;
+  }
+  if (state.tab === 'upload') render();
+}
+
+function renderUpload() {
+  let html = `<label class="drop">
+      <input type="file" id="file" accept="image/*" multiple>
+      <b>＋ Выбрать скриншоты</b>
+      <span class="hint">Можно сразу несколько платёжек Bangkok Bank</span>
+    </label>`;
+  if (!state.uploads.length) return html;
+
+  const ready = state.uploads.filter((u) => u.status === 'ready');
+  const savable = ready.filter((u) => u.categoryId);
+  const hasDone = state.uploads.some((u) => u.status !== 'parsing' && u.status !== 'ready');
+
+  html += `<div class="section-title"><span>Загружено: ${state.uploads.length}</span>
+    ${hasDone ? '<button data-action="clear">Убрать обработанные</button>' : ''}</div>`;
+
+  for (const u of state.uploads) {
+    html += `<section class="card" data-key="${u.key}">${uploadCard(u)}</section>`;
+  }
+  html += `<div class="savebar" id="savebar" style="display:${savable.length && !tg?.MainButton ? 'block' : 'none'}">
+    <button class="btn" data-action="saveall">Сохранить (${savable.length})</button></div>`;
+  return html;
+}
+
+function uploadCard(u) {
+  const head = (right) => `<div class="row">
+      <div class="grow">${u.slip
+        ? `<div class="up-amount num">${money(u.slip.amount)} THB</div>
+           <div class="hint ellipsis">${fmtDateTime(u.slip.paid_at)} · ${esc(u.slip.recipient_name || u.slip.recipient_account)}</div>`
+        : `<div class="ellipsis">${esc(u.name)}</div>`}
+        ${right}
+      </div>
+      ${u.status !== 'parsing' ? `<button class="x" data-action="remove" data-key="${u.key}">✕</button>` : ''}
+    </div>`;
+
+  if (u.status === 'parsing') return head('<div class="status hint"><span class="spinner"></span> Распознаю…</div>');
+  if (u.status === 'error') return head(`<div class="status err">${esc(u.error)}</div>`);
+  if (u.status === 'saved') return head(`<div class="status ok">✓ Сохранено → ${esc(catName(u.categoryId))}</div>`);
+  if (u.status === 'dup') return head(`<div class="status err">${u.dup
+    ? `Уже добавлена: #${u.dup.id}, ${esc(u.dup.category)}` : 'Такая же платёжка уже есть в этой пачке'}</div>`);
+
+  return head(u.saving ? '<div class="status hint"><span class="spinner"></span> Сохраняю…</div>' : '') + `
+    <div class="chips">${state.categories.map((c) => `
+      <button class="chip ${c.id === u.categoryId ? 'on' : ''} ${c.id === u.suggested ? 'sugg' : ''}"
+              data-action="pick" data-key="${u.key}" data-id="${c.id}">${esc(c.name)}</button>`).join('')}
+      <button class="chip add" data-action="newcat" data-key="${u.key}">＋ Новая</button>
+    </div>
+    ${u.adding ? `<form class="newcat" data-key="${u.key}">
+      <input placeholder="Название категории" maxlength="40" autocomplete="off" enterkeyhint="done">
+      <button type="submit">OK</button></form>` : ''}`;
+}
+
+const catName = (id) => state.categories.find((c) => c.id === id)?.name ?? '';
+
+async function saveAll() {
+  const items = state.uploads.filter((u) => u.status === 'ready' && u.categoryId && !u.saving);
+  if (!items.length) return;
+  tg?.MainButton.showProgress();
+  let ok = 0;
+  for (const u of items) {
+    u.saving = true;
+    render();
+    try {
+      await api('/api/payments', {method: 'POST', json: {slip: u.slip, category_id: u.categoryId}});
+      u.status = 'saved'; ok++;
+    } catch (e) {
+      if (e.status === 409) { u.status = 'dup'; u.dup = null; }
+      else toast(e.message);
+    }
+    u.saving = false;
+  }
+  tg?.MainButton.hideProgress();
+  if (ok) { haptic('success'); toast(`Сохранено: ${ok}`); }
+  render();
+  loadMonth();
+}
+
+async function createCategory(key, name) {
+  name = name.trim();
+  if (!name) return;
+  try {
+    const c = await api('/api/categories', {method: 'POST', json: {name}});
+    if (!state.categories.some((x) => x.id === c.id)) state.categories.push(c);
+    const u = state.uploads.find((x) => x.key === key);
+    if (u) { u.categoryId = c.id; u.adding = false; }
+    render();
+  } catch (e) { toast(e.message); }
+}
+
+// ---------------- Рендер и события ----------------
+
+function updateMainButton() {
+  const mb = tg?.MainButton;
+  if (!mb) return;
+  const n = state.uploads.filter((u) => u.status === 'ready' && u.categoryId).length;
+  if (state.tab === 'upload' && n) mb.setText(`Сохранить (${n})`).show();
+  else mb.hide();
+}
+
+function render() {
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === state.tab));
+  const focused = document.activeElement?.closest?.('form.newcat');
+  const keep = focused ? {key: focused.dataset.key, value: focused.querySelector('input').value} : null;
+  $('#view').innerHTML = state.tab === 'list' ? renderList() : renderUpload();
+  if (keep) {
+    const f = document.querySelector(`form.newcat[data-key="${keep.key}"]`);
+    if (f) { const i = f.querySelector('input'); i.value = keep.value; i.focus(); }
+  }
+  updateMainButton();
+}
+
+document.addEventListener('click', (ev) => {
+  const el = ev.target.closest('[data-tab],[data-action]');
+  if (!el) return;
+  if (el.dataset.tab) { state.tab = el.dataset.tab; window.scrollTo(0, 0); render(); return; }
+  const key = +el.dataset.key;
+  const u = state.uploads.find((x) => x.key === key);
+  switch (el.dataset.action) {
+    case 'month': state.month = shiftMonth(state.month, +el.dataset.d); state.monthData = null; render(); loadMonth(); break;
+    case 'goto': state.month = el.dataset.m; loadMonth(); break;
+    case 'filter': state.filter = el.dataset.id ? (+el.dataset.id === state.filter ? null : +el.dataset.id) : null; render(); break;
+    case 'open': openPayment(+el.dataset.id); break;
+    case 'close': closeSheet(); break;
+    case 'recat': recat(+el.dataset.id); break;
+    case 'delete': deletePayment(); break;
+    case 'pick': if (u) { u.categoryId = +el.dataset.id; tg?.HapticFeedback?.selectionChanged(); render(); } break;
+    case 'newcat':
+      if (u) { u.adding = true; render(); document.querySelector(`form.newcat[data-key="${key}"] input`)?.focus(); }
+      break;
+    case 'remove': state.uploads = state.uploads.filter((x) => x.key !== key); render(); break;
+    case 'clear': state.uploads = state.uploads.filter((x) => x.status === 'parsing' || x.status === 'ready'); render(); break;
+    case 'saveall': saveAll(); break;
+  }
+});
+
+document.addEventListener('submit', (ev) => {
+  const f = ev.target.closest('form.newcat');
+  if (!f) return;
+  ev.preventDefault();
+  createCategory(+f.dataset.key, f.querySelector('input').value);
+});
+
+document.addEventListener('change', (ev) => {
+  if (ev.target.id === 'file' && ev.target.files.length) addFiles([...ev.target.files]);
+});
+
+$('#overlay').addEventListener('click', closeSheet);
+tg?.BackButton.onClick(closeSheet);
+tg?.MainButton.onClick(saveAll);
+
+async function init() {
+  if (!tg?.initData) {
+    $('#view').innerHTML = '<section class="card empty">Откройте приложение из Telegram — кнопкой «Траты» в чате с ботом.</section>';
+    return;
+  }
+  render();
+  try {
+    state.categories = await api('/api/categories');
+    await loadMonth();
+  } catch (e) {
+    $('#view').innerHTML = `<section class="card empty">${esc(e.message)}</section>`;
+  }
+}
+init();
+</script>
+</body>
+</html>

@@ -23,7 +23,9 @@ python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 ## Деплой на Railway
 
-В репозитории уже есть `Dockerfile` и `railway.json`: Railway соберёт образ сам.
+Railway собирает образ по `Dockerfile`. Настройки сервиса (сборка, `/health`, одна реплика, том `/data`)
+описаны кодом в `.railway/railway.ts`; после их правки: `npm install`, `railway config plan`, `railway config apply`.
+Переменные (`BOT_TOKEN` и др.) этим файлом не управляются — они задаются в дашборде.
 
 1. [railway.com](https://railway.com) → **New Project** → **Deploy from GitHub repo** → выбрать этот репозиторий.
    Первый деплой упадёт с сообщением «На Railway нет Volume…» — так и задумано, см. шаг 3.
@@ -40,7 +42,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
 **Перед этим остановите бота на ноутбуке.** Два бота с одним токеном мешают друг другу:
 Telegram отдаёт каждое сообщение только одному из них.
 
-Реплика должна быть ровно одна (`numReplicas: 1` в `railway.json`) — по той же причине.
+Реплика должна быть ровно одна (`replicas` в `.railway/railway.ts`) — по той же причине.
 
 ## Mini App (приложение внутри Telegram)
 

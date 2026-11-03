@@ -42,7 +42,7 @@ _railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 WEBAPP_URL = (os.getenv("WEBAPP_URL") or (f"https://{_railway_domain}" if _railway_domain else "")).strip().rstrip("/")
 # Railway передаёт порт в PORT и ходит в контейнер снаружи, поэтому там слушаем 0.0.0.0.
 WEBAPP_PORT = int(os.getenv("PORT") or os.getenv("WEBAPP_PORT", "8080"))
-WEBAPP_HOST = "0.0.0.0" if os.getenv("PORT") else "127.0.0.1"
+WEBAPP_HOST = "0.0.0.0" if os.getenv("PORT") or os.getenv("RAILWAY_ENVIRONMENT") else "127.0.0.1"
 
 db = DB(DB_PATH)
 router = Router()

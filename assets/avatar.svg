@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2DD4BF"/>
+      <stop offset="0.55" stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#0B3F3B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.25" r="0.6">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#022C29" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="640" fill="url(#bg)"/>
+  <rect width="640" height="640" fill="url(#glow)"/>
+
+  <g transform="translate(320 322) scale(1.15) translate(-320 -307) rotate(-7 320 300)">
+    <path d="M190,142 Q190,118 214,118 H426 Q450,118 450,142 V478 L433.8,496 L417.5,478 L401.2,496 L385.0,478 L368.8,496 L352.5,478 L336.2,496 L320.0,478 L303.8,496 L287.5,478 L271.2,496 L255.0,478 L238.8,496 L222.5,478 L206.2,496 L190.0,478 Z" fill="#FFFDF7" filter="url(#shadow)"/>
+
+    <!-- галочка «оплачено» -->
+    <circle cx="320" cy="168" r="26" fill="#22C55E"/>
+    <path d="M307.5,168 L316,177.5 L333,158.5" fill="none" stroke="#fff" stroke-width="7"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- знак бата ฿, нарисован линиями, чтобы не зависеть от шрифтов -->
+    <g transform="translate(272,226)" fill="none" stroke="#F97316" stroke-width="20"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10,10 V140"/>
+      <path d="M10,10 H52 a31,31 0 0 1 0,62 H10"/>
+      <path d="M10,72 H58 a34,34 0 0 1 0,68 H10"/>
+      <path d="M40,-4 V154"/>
+    </g>
+
+    <!-- полоски-категории -->
+    <rect x="232" y="402" width="176" height="14" rx="7" fill="#14B8A6"/>
+    <rect x="232" y="426" width="124" height="14" rx="7" fill="#F59E0B"/>
+    <rect x="232" y="450" width="78"  height="14" rx="7" fill="#F43F5E"/>
+  </g>
+</svg>
